@@ -1,26 +1,22 @@
-(* Dependency-free test runner for the DateTime structure.
- * Prints one line per assertion and exits non-zero if any assertion fails. *)
+(* Test suite for the DateTime structure, standardized on the shared
+ * sml-test Harness. *)
 
-val passed = ref 0
-val failed = ref 0
+structure Tests =
+struct
+  open Harness
 
-fun check (name : string) (cond : bool) : unit =
-    if cond
-    then (passed := !passed + 1; print ("ok   - " ^ name ^ "\n"))
-    else (failed := !failed + 1; print ("FAIL - " ^ name ^ "\n"))
+  fun raisesInvalid (thunk : unit -> 'a) : bool =
+      (ignore (thunk ()); false)
+      handle DateTime.Invalid _ => true | _ => false
 
-fun raisesInvalid (thunk : unit -> 'a) : bool =
-    (ignore (thunk ()); false)
-    handle DateTime.Invalid _ => true | _ => false
+  structure D = DateTime
 
-structure D = DateTime
+  fun d (y, m, dd) = {year = y, month = m, day = dd}
+  fun tm (h, mi, s, n) = {hour = h, minute = mi, second = s, nano = n}
+  fun dt (y, mo, da, h, mi, s, n) = {date = d (y, mo, da), time = tm (h, mi, s, n)}
 
-fun d (y, m, dd) = {year = y, month = m, day = dd}
-fun tm (h, mi, s, n) = {hour = h, minute = mi, second = s, nano = n}
-fun dt (y, mo, da, h, mi, s, n) = {date = d (y, mo, da), time = tm (h, mi, s, n)}
-
-fun run () =
-  let
+  fun run () =
+    let
     (* ---- leap years ---- *)
     val () = check "2000 is leap" (D.isLeapYear 2000)
     val () = check "1900 not leap" (not (D.isLeapYear 1900))
@@ -354,9 +350,6 @@ fun run () =
         in List.all ok samples end
     val () = check "datetime ISO round-trip with fractions" dtFracRoundtripOk
   in
-    print ("\n" ^ Int.toString (!passed) ^ " passed, "
-           ^ Int.toString (!failed) ^ " failed\n");
-    OS.Process.exit (if !failed = 0 then OS.Process.success else OS.Process.failure)
+    Harness.run ()
   end
-
-val () = run ()
+end
